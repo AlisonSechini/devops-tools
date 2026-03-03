@@ -1,0 +1,9 @@
+version: '3.8'
+
+services:
+  servidor-web:
+    image: nginx:alpine
+    container_name: meu-site-nginx
+    ports:
+      - "8080:80" # A porta 8080 é a que acessamos no navegador
+    restart: always
