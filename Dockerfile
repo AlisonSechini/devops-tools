@@ -1,27 +1,27 @@
-# Estágio 1: Build da versão Web do App Mobile
+# Estágio 1: Build
 FROM node:18-alpine AS build-stage
 
-# Instala as dependências necessárias para o Expo
-RUN apk add --no-cache libc6-compat
+# 1. Instala dependências de sistema necessárias para compilação no Linux
+RUN apk add --no-cache libc6-compat python3 make g++
 
 WORKDIR /app
 
+# 2. Copia apenas os arquivos de dependências primeiro (otimiza o cache)
 COPY package*.json ./
-# Instala as dependências (inclusive o expo-cli)
+
+# 3. Instala TUDO (incluindo devDependencies necessárias para o build)
 RUN npm install
 
+# 4. Copia o restante do código
 COPY . .
 
-# Comando correto para gerar a versão Web no Expo
-# Isso vai criar uma pasta chamada 'web-build' ou 'dist'
-RUN npx expo export:web
+# 5. Roda o export web com uma flag para evitar travar em avisos
+RUN npx expo export:web --non-interactive
 
-# Estágio 2: Servir com NGINX
+# Estágio 2: Produção (NGINX)
 FROM nginx:stable-alpine AS production-stage
-
-# O comando export:web costuma gerar a pasta 'web-build'
-# Se o seu gerar 'dist', mude de /app/web-build para /app/dist abaixo
-COPY --from=build-stage /app/web-build /usr/share/nginx/html
-
+# O Expo 50+ agora costuma gerar na pasta /dist por padrão, 
+# se o seu for antigo e gerar 'web-build', troque o nome abaixo:
+COPY --from=build-stage /app/dist /usr/share/nginx/html
 EXPOSE 80
 CMD ["nginx", "-g", "daemon off;"]
