@@ -26,5 +26,5 @@ jobs:
         with:
           context: .
           push: true
-          # Substitua 'seu-usuario-do-docker' pelo seu username real ou use uma variável
-          tags: ${{ secrets.DOCKERHUB_USERNAME }}/todo-app:latest
+          # Digite seu usuário do Docker Hub manualmente aqui para não ter erro
+          tags: alison110602/todo-app:latest
