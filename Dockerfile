@@ -1,30 +1,33 @@
-# Estágio 1: Build (Node 20 é essencial aqui)
+# Estágio 1: Build
 FROM node:20-alpine AS build-stage
 
-# Instala ferramentas de compilação
+# Dependências de sistema
 RUN apk add --no-cache libc6-compat python3 make g++
 
 WORKDIR /app
 
+# Instala o CLI do Expo globalmente para garantir que o comando exista
+RUN npm install -g expo-cli
+
 COPY package*.json ./
 
-# 1. Instala as dependências ignorando conflitos de versão do React
+# Instala dependências ignorando conflitos
 RUN npm install --legacy-peer-deps
 
-# 2. Garante que os pacotes Web existam (mesmo que não estejam no seu package.json original)
-RUN npm install react-dom@19.0.0 react-native-web@0.19.13 @expo/metro-runtime --legacy-peer-deps
+# Garante suporte Web
+RUN npm install react-dom react-native-web @expo/metro-runtime --legacy-peer-deps
 
 COPY . .
 
-# 3. Roda o build forçando o modo de produção e ignorando avisos de ambiente
-ENV NODE_ENV=production
-RUN npx expo export:web --clear
+# Comando de build definitivo (usando a variável CI=1 para silenciar o terminal)
+ENV CI=1
+RUN npx expo export --platform web
 
 # Estágio 2: Produção (NGINX)
 FROM nginx:stable-alpine AS production-stage
 
-# Tenta copiar da pasta 'dist' (padrão atual do Expo)
-# Se falhar no GitHub Actions dizendo que a pasta não existe, mude para 'web-build'
+# Tenta copiar da 'dist' (padrão do expo export). 
+# Se der erro de "folder not found", mude para 'web-build'
 COPY --from=build-stage /app/dist /usr/share/nginx/html
 
 EXPOSE 80
