@@ -1,27 +1,29 @@
-# Estágio 1: Build
-FROM node:18-alpine AS build-stage
+# Estágio 1: Build (Usando Node 20 para evitar erros de versão)
+FROM node:20-alpine AS build-stage
 
-# 1. Instala dependências de sistema necessárias para compilação no Linux
+# Instala dependências de sistema
 RUN apk add --no-cache libc6-compat python3 make g++
 
 WORKDIR /app
 
-# 2. Copia apenas os arquivos de dependências primeiro (otimiza o cache)
 COPY package*.json ./
 
-# 3. Instala TUDO (incluindo devDependencies necessárias para o build)
+# Instala as dependências do projeto
 RUN npm install
 
-# 4. Copia o restante do código
+# FORÇA a instalação das dependências Web que o erro apontou
+RUN npx expo install react-dom react-native-web @expo/metro-runtime
+
 COPY . .
 
-# 5. Roda o export web com uma flag para evitar travar em avisos
-RUN npx expo export:web --non-interactive
+# Roda o build (usando CI=1 que o log sugeriu)
+RUN CI=1 npx expo export:web
 
 # Estágio 2: Produção (NGINX)
 FROM nginx:stable-alpine AS production-stage
-# O Expo 50+ agora costuma gerar na pasta /dist por padrão, 
-# se o seu for antigo e gerar 'web-build', troque o nome abaixo:
+
+# No Expo moderno, a pasta de saída é a 'dist'
 COPY --from=build-stage /app/dist /usr/share/nginx/html
+
 EXPOSE 80
 CMD ["nginx", "-g", "daemon off;"]
